@@ -57,15 +57,6 @@ public class CombinedCheckStateUpdatedSender extends ReplyToChangeSender {
     super(args, "combinedCheckStateUpdate", ChangeEmail.newChangeData(args, project, changeId));
   }
 
-  @Override
-  protected void init() throws EmailException {
-    super.init();
-
-    ccAllApprovals();
-    bccStarredBy();
-    includeWatchers(NotifyType.ALL_COMMENTS);
-  }
-
   public void setCombinedCheckState(
       CombinedCheckState oldCombinedCheckState, CombinedCheckState newCombinedCheckState) {
     this.oldCombinedCheckState = requireNonNull(oldCombinedCheckState);
@@ -90,8 +81,8 @@ public class CombinedCheckStateUpdatedSender extends ReplyToChangeSender {
   }
 
   @Override
-  protected void setupSoyContext() {
-    super.setupSoyContext();
+  protected void populateEmailContent() throws EmailException {
+    super.populateEmailContent();
 
     if (oldCombinedCheckState != null) {
       soyContext.put("oldCombinedCheckState", oldCombinedCheckState.name());
@@ -114,6 +105,10 @@ public class CombinedCheckStateUpdatedSender extends ReplyToChangeSender {
       }
       soyContext.put("allCheckers", allCheckersData);
     }
+
+    ccAllApprovals();
+    bccStarredBy();
+    includeWatchers(NotifyType.ALL_COMMENTS);
   }
 
   /**
