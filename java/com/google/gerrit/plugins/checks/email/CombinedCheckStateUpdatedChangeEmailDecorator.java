@@ -22,40 +22,28 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.gerrit.entities.Change;
 import com.google.gerrit.entities.NotifyConfig.NotifyType;
-import com.google.gerrit.entities.Project;
 import com.google.gerrit.exceptions.EmailException;
+import com.google.gerrit.extensions.api.changes.RecipientType;
 import com.google.gerrit.plugins.checks.Check;
 import com.google.gerrit.plugins.checks.Checker;
 import com.google.gerrit.plugins.checks.api.CheckState;
 import com.google.gerrit.plugins.checks.api.CombinedCheckState;
-import com.google.gerrit.server.mail.send.ChangeEmail;
-import com.google.gerrit.server.mail.send.EmailArguments;
-import com.google.gerrit.server.mail.send.ReplyToChangeSender;
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
+import com.google.gerrit.server.mail.send.ChangeEmailNew;
+import com.google.gerrit.server.mail.send.ChangeEmailNew.ChangeEmailDecorator;
+import com.google.gerrit.server.mail.send.OutgoingEmailNew;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Send notice about an update of the combined check state of a change. */
-public class CombinedCheckStateUpdatedSender extends ReplyToChangeSender {
-  public interface Factory extends ReplyToChangeSender.Factory<CombinedCheckStateUpdatedSender> {
-    @Override
-    CombinedCheckStateUpdatedSender create(Project.NameKey project, Change.Id changeId);
-  }
-
+public class CombinedCheckStateUpdatedChangeEmailDecorator implements ChangeEmailDecorator {
+  private OutgoingEmailNew email;
+  private ChangeEmailNew changeEmail;
   private CombinedCheckState oldCombinedCheckState;
   private CombinedCheckState newCombinedCheckState;
   private Checker checker;
   private Check check;
   private ImmutableMap<Checker, Check> checksByChecker;
-
-  @Inject
-  public CombinedCheckStateUpdatedSender(
-      EmailArguments args, @Assisted Project.NameKey project, @Assisted Change.Id changeId) {
-    super(args, "combinedCheckStateUpdate", ChangeEmail.newChangeData(args, project, changeId));
-  }
 
   public void setCombinedCheckState(
       CombinedCheckState oldCombinedCheckState, CombinedCheckState newCombinedCheckState) {
@@ -81,19 +69,26 @@ public class CombinedCheckStateUpdatedSender extends ReplyToChangeSender {
   }
 
   @Override
-  protected void populateEmailContent() throws EmailException {
-    super.populateEmailContent();
+  public void init(OutgoingEmailNew email, ChangeEmailNew changeEmail) {
+    this.email = email;
+    this.changeEmail = changeEmail;
+    changeEmail.markAsReply();
+  }
+
+  @Override
+  public void populateEmailContent() throws EmailException {
+    changeEmail.addAuthors(RecipientType.TO);
 
     if (oldCombinedCheckState != null) {
-      addSoyParam("oldCombinedCheckState", oldCombinedCheckState.name());
+      email.addSoyParam("oldCombinedCheckState", oldCombinedCheckState.name());
     }
 
     if (newCombinedCheckState != null) {
-      addSoyParam("newCombinedCheckState", newCombinedCheckState.name());
+      email.addSoyParam("newCombinedCheckState", newCombinedCheckState.name());
     }
 
     if (checker != null && check != null) {
-      addSoyParam("checker", getCheckerData(checker, check));
+      email.addSoyParam("checker", getCheckerData(checker, check));
     }
 
     if (checksByChecker != null) {
@@ -103,12 +98,17 @@ public class CombinedCheckStateUpdatedSender extends ReplyToChangeSender {
             CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, checkState.name()),
             getCheckerDataForCheckState(checkState));
       }
-      addSoyParam("allCheckers", allCheckersData);
+      email.addSoyParam("allCheckers", allCheckersData);
     }
 
-    ccAllApprovals();
-    bccStarredBy();
-    includeWatchers(NotifyType.ALL_COMMENTS);
+    changeEmail.ccAllApprovals();
+    changeEmail.bccStarredBy();
+    changeEmail.includeWatchers(NotifyType.ALL_COMMENTS);
+
+    email.appendText(email.textTemplate("CombinedCheckStateUpdated"));
+    if (email.useHtml()) {
+      email.appendHtml(email.soyHtmlTemplate("CombinedCheckStateUpdatedHtml"));
+    }
   }
 
   /**
@@ -149,13 +149,5 @@ public class CombinedCheckStateUpdatedSender extends ReplyToChangeSender {
         .sorted(comparing(e -> e.getKey().getName()))
         .map(e -> getCheckerData(e.getKey(), e.getValue()))
         .collect(toImmutableList());
-  }
-
-  @Override
-  protected void formatChange() throws EmailException {
-    appendText(textTemplate("CombinedCheckStateUpdated"));
-    if (useHtml()) {
-      appendHtml(soyHtmlTemplate("CombinedCheckStateUpdatedHtml"));
-    }
   }
 }

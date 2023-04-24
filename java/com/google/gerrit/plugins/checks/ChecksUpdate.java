@@ -27,14 +27,17 @@ import com.google.gerrit.extensions.api.changes.RecipientType;
 import com.google.gerrit.extensions.restapi.BadRequestException;
 import com.google.gerrit.plugins.checks.Checks.GetCheckOptions;
 import com.google.gerrit.plugins.checks.api.CombinedCheckState;
-import com.google.gerrit.plugins.checks.email.CombinedCheckStateUpdatedSender;
+import com.google.gerrit.plugins.checks.email.ChecksEmailModule.ChecksEmailFactories;
+import com.google.gerrit.plugins.checks.email.CombinedCheckStateUpdatedChangeEmailDecorator;
 import com.google.gerrit.server.IdentifiedUser;
 import com.google.gerrit.server.PatchSetUtil;
 import com.google.gerrit.server.ServerInitiated;
 import com.google.gerrit.server.UserInitiated;
 import com.google.gerrit.server.change.NotifyResolver;
 import com.google.gerrit.server.index.change.ChangeIndexer;
+import com.google.gerrit.server.mail.send.ChangeEmailNew;
 import com.google.gerrit.server.mail.send.MessageIdGenerator;
+import com.google.gerrit.server.mail.send.OutgoingEmailNew;
 import com.google.gerrit.server.notedb.ChangeNotes;
 import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.AssistedInject;
@@ -62,7 +65,7 @@ public class ChecksUpdate {
 
   private final ChecksStorageUpdate checksStorageUpdate;
   private final CombinedCheckStateCache combinedCheckStateCache;
-  private final CombinedCheckStateUpdatedSender.Factory combinedCheckStateUpdatedSenderFactory;
+  private final ChecksEmailFactories checksEmailFactories;
   private final ChangeNotes.Factory notesFactory;
   private final PatchSetUtil psUtil;
   private final Checks checks;
@@ -77,7 +80,7 @@ public class ChecksUpdate {
   ChecksUpdate(
       @UserInitiated ChecksStorageUpdate checksStorageUpdate,
       CombinedCheckStateCache combinedCheckStateCache,
-      CombinedCheckStateUpdatedSender.Factory combinedCheckStateUpdatedSenderFactory,
+      ChecksEmailFactories checksEmailFactories,
       ChangeNotes.Factory notesFactory,
       PatchSetUtil psUtil,
       Checks checks,
@@ -88,7 +91,7 @@ public class ChecksUpdate {
       @Assisted IdentifiedUser currentUser) {
     this.checksStorageUpdate = checksStorageUpdate;
     this.combinedCheckStateCache = combinedCheckStateCache;
-    this.combinedCheckStateUpdatedSenderFactory = combinedCheckStateUpdatedSenderFactory;
+    this.checksEmailFactories = checksEmailFactories;
     this.notesFactory = notesFactory;
     this.psUtil = psUtil;
     this.checks = checks;
@@ -103,7 +106,7 @@ public class ChecksUpdate {
   ChecksUpdate(
       @ServerInitiated ChecksStorageUpdate checksStorageUpdate,
       CombinedCheckStateCache combinedCheckStateCache,
-      CombinedCheckStateUpdatedSender.Factory combinedCheckStateUpdatedSenderFactory,
+      ChecksEmailFactories checksEmailFactories,
       ChangeNotes.Factory notesFactory,
       PatchSetUtil psUtil,
       Checks checks,
@@ -113,7 +116,7 @@ public class ChecksUpdate {
       ChangeIndexer changeIndexer) {
     this.checksStorageUpdate = checksStorageUpdate;
     this.combinedCheckStateCache = combinedCheckStateCache;
-    this.combinedCheckStateUpdatedSenderFactory = combinedCheckStateUpdatedSenderFactory;
+    this.checksEmailFactories = checksEmailFactories;
     this.notesFactory = notesFactory;
     this.psUtil = psUtil;
     this.checks = checks;
@@ -206,18 +209,10 @@ public class ChecksUpdate {
     NotifyResolver.Result notify = notifyResolver.resolve(notifyHandling, notifyDetails);
 
     try {
-      CombinedCheckStateUpdatedSender sender =
-          combinedCheckStateUpdatedSenderFactory.create(
-              checkKey.repository(), checkKey.patchSet().changeId());
-
-      if (currentUser.isPresent()) {
-        sender.setFrom(currentUser.get().getAccountId());
-      }
-
-      PatchSet patchSet = psUtil.get(changeNotes, checkKey.patchSet());
-      sender.setPatchSet(patchSet);
-      sender.setCombinedCheckState(oldCombinedCheckState, newCombinedCheckState);
-      sender.setCheck(
+      CombinedCheckStateUpdatedChangeEmailDecorator checksEmailDecorator =
+          checksEmailFactories.createChecksEmailDecorator();
+      checksEmailDecorator.setCombinedCheckState(oldCombinedCheckState, newCombinedCheckState);
+      checksEmailDecorator.setCheck(
           checkers
               .getChecker(checkKey.checkerUuid())
               .orElseThrow(
@@ -227,11 +222,20 @@ public class ChecksUpdate {
                               "checker %s of check %s not found",
                               checkKey.checkerUuid(), checkKey))),
           updatedCheck);
-      sender.setNotify(notify);
-      sender.setChecksByChecker(getAllChecksByChecker(checkKey));
-      sender.setMessageId(
+      checksEmailDecorator.setChecksByChecker(getAllChecksByChecker(checkKey));
+      ChangeEmailNew changeEmail =
+          checksEmailFactories.createChangeEmail(
+              checkKey.repository(), checkKey.patchSet().changeId(), checksEmailDecorator);
+      PatchSet patchSet = psUtil.get(changeNotes, checkKey.patchSet());
+      changeEmail.setPatchSet(patchSet);
+      OutgoingEmailNew outgoingEmail = checksEmailFactories.createEmail(changeEmail);
+      if (currentUser.isPresent()) {
+        outgoingEmail.setFrom(currentUser.get().getAccountId());
+      }
+      outgoingEmail.setNotify(notify);
+      outgoingEmail.setMessageId(
           messageIdGenerator.fromChangeUpdate(checkKey.repository(), checkKey.patchSet()));
-      sender.send();
+      outgoingEmail.send();
     } catch (Exception e) {
       logger.atSevere().withCause(e).log(
           "Cannot email update for change %s", checkKey.patchSet().changeId());
