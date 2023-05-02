@@ -29,16 +29,16 @@ import com.google.gerrit.plugins.checks.Check;
 import com.google.gerrit.plugins.checks.Checker;
 import com.google.gerrit.plugins.checks.api.CheckState;
 import com.google.gerrit.plugins.checks.api.CombinedCheckState;
-import com.google.gerrit.server.mail.send.ChangeEmailNew;
-import com.google.gerrit.server.mail.send.ChangeEmailNew.ChangeEmailDecorator;
-import com.google.gerrit.server.mail.send.OutgoingEmailNew;
+import com.google.gerrit.server.mail.send.ChangeEmail;
+import com.google.gerrit.server.mail.send.ChangeEmail.ChangeEmailDecorator;
+import com.google.gerrit.server.mail.send.OutgoingEmail;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Send notice about an update of the combined check state of a change. */
 public class CombinedCheckStateUpdatedChangeEmailDecorator implements ChangeEmailDecorator {
-  private OutgoingEmailNew email;
-  private ChangeEmailNew changeEmail;
+  private OutgoingEmail email;
+  private ChangeEmail changeEmail;
   private CombinedCheckState oldCombinedCheckState;
   private CombinedCheckState newCombinedCheckState;
   private Checker checker;
@@ -69,7 +69,7 @@ public class CombinedCheckStateUpdatedChangeEmailDecorator implements ChangeEmai
   }
 
   @Override
-  public void init(OutgoingEmailNew email, ChangeEmailNew changeEmail) {
+  public void init(OutgoingEmail email, ChangeEmail changeEmail) {
     this.email = email;
     this.changeEmail = changeEmail;
     changeEmail.markAsReply();

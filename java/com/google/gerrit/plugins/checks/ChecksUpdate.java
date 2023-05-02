@@ -35,9 +35,9 @@ import com.google.gerrit.server.ServerInitiated;
 import com.google.gerrit.server.UserInitiated;
 import com.google.gerrit.server.change.NotifyResolver;
 import com.google.gerrit.server.index.change.ChangeIndexer;
-import com.google.gerrit.server.mail.send.ChangeEmailNew;
+import com.google.gerrit.server.mail.send.ChangeEmail;
 import com.google.gerrit.server.mail.send.MessageIdGenerator;
-import com.google.gerrit.server.mail.send.OutgoingEmailNew;
+import com.google.gerrit.server.mail.send.OutgoingEmail;
 import com.google.gerrit.server.notedb.ChangeNotes;
 import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.AssistedInject;
@@ -223,12 +223,12 @@ public class ChecksUpdate {
                               checkKey.checkerUuid(), checkKey))),
           updatedCheck);
       checksEmailDecorator.setChecksByChecker(getAllChecksByChecker(checkKey));
-      ChangeEmailNew changeEmail =
+      ChangeEmail changeEmail =
           checksEmailFactories.createChangeEmail(
               checkKey.repository(), checkKey.patchSet().changeId(), checksEmailDecorator);
       PatchSet patchSet = psUtil.get(changeNotes, checkKey.patchSet());
       changeEmail.setPatchSet(patchSet);
-      OutgoingEmailNew outgoingEmail = checksEmailFactories.createEmail(changeEmail);
+      OutgoingEmail outgoingEmail = checksEmailFactories.createEmail(changeEmail);
       if (currentUser.isPresent()) {
         outgoingEmail.setFrom(currentUser.get().getAccountId());
       }

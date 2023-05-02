@@ -20,12 +20,12 @@ import com.google.gerrit.entities.Change;
 import com.google.gerrit.entities.Project;
 import com.google.gerrit.extensions.config.FactoryModule;
 import com.google.gerrit.extensions.registration.DynamicSet;
-import com.google.gerrit.server.mail.send.ChangeEmailNew;
-import com.google.gerrit.server.mail.send.ChangeEmailNewFactory;
+import com.google.gerrit.server.mail.send.ChangeEmail;
+import com.google.gerrit.server.mail.send.ChangeEmailFactory;
 import com.google.gerrit.server.mail.send.EmailArguments;
 import com.google.gerrit.server.mail.send.MailSoyTemplateProvider;
-import com.google.gerrit.server.mail.send.OutgoingEmailNew;
-import com.google.gerrit.server.mail.send.OutgoingEmailNewFactory;
+import com.google.gerrit.server.mail.send.OutgoingEmail;
+import com.google.gerrit.server.mail.send.OutgoingEmailFactory;
 import com.google.inject.Inject;
 
 public class ChecksEmailModule extends FactoryModule {
@@ -38,14 +38,14 @@ public class ChecksEmailModule extends FactoryModule {
 
   public static class ChecksEmailFactories {
     private final EmailArguments args;
-    private final ChangeEmailNewFactory changeEmailFactory;
-    private final OutgoingEmailNewFactory outgoingEmailFactory;
+    private final ChangeEmailFactory changeEmailFactory;
+    private final OutgoingEmailFactory outgoingEmailFactory;
 
     @Inject
     ChecksEmailFactories(
         EmailArguments args,
-        ChangeEmailNewFactory changeEmailFactory,
-        OutgoingEmailNewFactory outgoingEmailFactory) {
+        ChangeEmailFactory changeEmailFactory,
+        OutgoingEmailFactory outgoingEmailFactory) {
       this.args = args;
       this.changeEmailFactory = changeEmailFactory;
       this.outgoingEmailFactory = outgoingEmailFactory;
@@ -55,14 +55,14 @@ public class ChecksEmailModule extends FactoryModule {
       return new CombinedCheckStateUpdatedChangeEmailDecorator();
     }
 
-    public ChangeEmailNew createChangeEmail(
+    public ChangeEmail createChangeEmail(
         Project.NameKey project,
         Change.Id changeId,
         CombinedCheckStateUpdatedChangeEmailDecorator checksEmailDecorator) {
       return changeEmailFactory.create(args.newChangeData(project, changeId), checksEmailDecorator);
     }
 
-    public OutgoingEmailNew createEmail(ChangeEmailNew changeEmail) {
+    public OutgoingEmail createEmail(ChangeEmail changeEmail) {
       return outgoingEmailFactory.create("combinedCheckStateUpdate", changeEmail);
     }
   }
