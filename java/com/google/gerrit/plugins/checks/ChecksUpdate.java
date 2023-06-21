@@ -27,7 +27,6 @@ import com.google.gerrit.extensions.api.changes.RecipientType;
 import com.google.gerrit.extensions.restapi.BadRequestException;
 import com.google.gerrit.plugins.checks.Checks.GetCheckOptions;
 import com.google.gerrit.plugins.checks.api.CombinedCheckState;
-import com.google.gerrit.plugins.checks.email.ChecksEmailModule.ChecksEmailFactories;
 import com.google.gerrit.plugins.checks.email.CombinedCheckStateUpdatedChangeEmailDecorator;
 import com.google.gerrit.server.IdentifiedUser;
 import com.google.gerrit.server.PatchSetUtil;
@@ -35,6 +34,7 @@ import com.google.gerrit.server.ServerInitiated;
 import com.google.gerrit.server.UserInitiated;
 import com.google.gerrit.server.change.NotifyResolver;
 import com.google.gerrit.server.index.change.ChangeIndexer;
+import com.google.gerrit.server.mail.EmailFactories;
 import com.google.gerrit.server.mail.send.ChangeEmail;
 import com.google.gerrit.server.mail.send.MessageIdGenerator;
 import com.google.gerrit.server.mail.send.OutgoingEmail;
@@ -65,7 +65,7 @@ public class ChecksUpdate {
 
   private final ChecksStorageUpdate checksStorageUpdate;
   private final CombinedCheckStateCache combinedCheckStateCache;
-  private final ChecksEmailFactories checksEmailFactories;
+  private final EmailFactories emailFactories;
   private final ChangeNotes.Factory notesFactory;
   private final PatchSetUtil psUtil;
   private final Checks checks;
@@ -80,7 +80,7 @@ public class ChecksUpdate {
   ChecksUpdate(
       @UserInitiated ChecksStorageUpdate checksStorageUpdate,
       CombinedCheckStateCache combinedCheckStateCache,
-      ChecksEmailFactories checksEmailFactories,
+      EmailFactories emailFactories,
       ChangeNotes.Factory notesFactory,
       PatchSetUtil psUtil,
       Checks checks,
@@ -91,7 +91,7 @@ public class ChecksUpdate {
       @Assisted IdentifiedUser currentUser) {
     this.checksStorageUpdate = checksStorageUpdate;
     this.combinedCheckStateCache = combinedCheckStateCache;
-    this.checksEmailFactories = checksEmailFactories;
+    this.emailFactories = emailFactories;
     this.notesFactory = notesFactory;
     this.psUtil = psUtil;
     this.checks = checks;
@@ -106,7 +106,7 @@ public class ChecksUpdate {
   ChecksUpdate(
       @ServerInitiated ChecksStorageUpdate checksStorageUpdate,
       CombinedCheckStateCache combinedCheckStateCache,
-      ChecksEmailFactories checksEmailFactories,
+      EmailFactories emailFactories,
       ChangeNotes.Factory notesFactory,
       PatchSetUtil psUtil,
       Checks checks,
@@ -116,7 +116,7 @@ public class ChecksUpdate {
       ChangeIndexer changeIndexer) {
     this.checksStorageUpdate = checksStorageUpdate;
     this.combinedCheckStateCache = combinedCheckStateCache;
-    this.checksEmailFactories = checksEmailFactories;
+    this.emailFactories = emailFactories;
     this.notesFactory = notesFactory;
     this.psUtil = psUtil;
     this.checks = checks;
@@ -210,7 +210,7 @@ public class ChecksUpdate {
 
     try {
       CombinedCheckStateUpdatedChangeEmailDecorator checksEmailDecorator =
-          checksEmailFactories.createChecksEmailDecorator();
+          new CombinedCheckStateUpdatedChangeEmailDecorator();
       checksEmailDecorator.setCombinedCheckState(oldCombinedCheckState, newCombinedCheckState);
       checksEmailDecorator.setCheck(
           checkers
@@ -224,11 +224,12 @@ public class ChecksUpdate {
           updatedCheck);
       checksEmailDecorator.setChecksByChecker(getAllChecksByChecker(checkKey));
       ChangeEmail changeEmail =
-          checksEmailFactories.createChangeEmail(
+          emailFactories.createChangeEmail(
               checkKey.repository(), checkKey.patchSet().changeId(), checksEmailDecorator);
       PatchSet patchSet = psUtil.get(changeNotes, checkKey.patchSet());
       changeEmail.setPatchSet(patchSet);
-      OutgoingEmail outgoingEmail = checksEmailFactories.createEmail(changeEmail);
+      OutgoingEmail outgoingEmail =
+          emailFactories.createOutgoingEmail("combinedCheckStateUpdate", changeEmail);
       if (currentUser.isPresent()) {
         outgoingEmail.setFrom(currentUser.get().getAccountId());
       }

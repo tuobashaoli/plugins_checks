@@ -16,17 +16,9 @@ package com.google.gerrit.plugins.checks.email;
 
 import static com.google.inject.Scopes.SINGLETON;
 
-import com.google.gerrit.entities.Change;
-import com.google.gerrit.entities.Project;
 import com.google.gerrit.extensions.config.FactoryModule;
 import com.google.gerrit.extensions.registration.DynamicSet;
-import com.google.gerrit.server.mail.send.ChangeEmail;
-import com.google.gerrit.server.mail.send.ChangeEmailFactory;
-import com.google.gerrit.server.mail.send.EmailArguments;
 import com.google.gerrit.server.mail.send.MailSoyTemplateProvider;
-import com.google.gerrit.server.mail.send.OutgoingEmail;
-import com.google.gerrit.server.mail.send.OutgoingEmailFactory;
-import com.google.inject.Inject;
 
 public class ChecksEmailModule extends FactoryModule {
   @Override
@@ -34,36 +26,5 @@ public class ChecksEmailModule extends FactoryModule {
     DynamicSet.bind(binder(), MailSoyTemplateProvider.class)
         .to(ChecksMailSoyTemplateProvider.class)
         .in(SINGLETON);
-  }
-
-  public static class ChecksEmailFactories {
-    private final EmailArguments args;
-    private final ChangeEmailFactory changeEmailFactory;
-    private final OutgoingEmailFactory outgoingEmailFactory;
-
-    @Inject
-    ChecksEmailFactories(
-        EmailArguments args,
-        ChangeEmailFactory changeEmailFactory,
-        OutgoingEmailFactory outgoingEmailFactory) {
-      this.args = args;
-      this.changeEmailFactory = changeEmailFactory;
-      this.outgoingEmailFactory = outgoingEmailFactory;
-    }
-
-    public CombinedCheckStateUpdatedChangeEmailDecorator createChecksEmailDecorator() {
-      return new CombinedCheckStateUpdatedChangeEmailDecorator();
-    }
-
-    public ChangeEmail createChangeEmail(
-        Project.NameKey project,
-        Change.Id changeId,
-        CombinedCheckStateUpdatedChangeEmailDecorator checksEmailDecorator) {
-      return changeEmailFactory.create(args.newChangeData(project, changeId), checksEmailDecorator);
-    }
-
-    public OutgoingEmail createEmail(ChangeEmail changeEmail) {
-      return outgoingEmailFactory.create("combinedCheckStateUpdate", changeEmail);
-    }
   }
 }
