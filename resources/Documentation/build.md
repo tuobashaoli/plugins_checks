@@ -20,7 +20,7 @@ The output is created in
 To execute the tests run:
 
 ```
-  bazel test --test_tag_filters=@PLUGIN@
+  bazel test //plugins/@PLUGIN@/...
 ```
 
 [Back to @PLUGIN@ documentation index][index]
