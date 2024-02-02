@@ -16,7 +16,6 @@ package com.google.gerrit.plugins.checks.acceptance.api;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 import static com.google.gerrit.truth.CacheStatsSubject.assertThat;
 import static com.google.gerrit.truth.CacheStatsSubject.cloneStats;
 
