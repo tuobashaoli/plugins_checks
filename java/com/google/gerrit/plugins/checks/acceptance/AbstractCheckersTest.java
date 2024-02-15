@@ -26,6 +26,8 @@ import com.google.gerrit.plugins.checks.acceptance.testsuite.CheckerOperations;
 import com.google.gerrit.plugins.checks.api.Checkers;
 import com.google.gerrit.plugins.checks.api.ChecksFactory;
 import com.google.gerrit.plugins.checks.api.PendingChecks;
+import com.google.gerrit.server.config.AllProjectsName;
+import com.google.gerrit.server.config.AllUsersName;
 import com.google.inject.Inject;
 import org.junit.Before;
 
@@ -47,9 +49,12 @@ public class AbstractCheckersTest extends LightweightPluginDaemonTest {
   protected PendingChecks pendingChecksApi;
 
   @Override
-  protected ProjectResetter.Config resetProjects() {
-    return super.resetProjects()
-        .reset(allProjects, CheckerRef.REFS_CHECKERS + "*", CheckerRef.REFS_META_CHECKERS);
+  protected ProjectResetter.Config resetProjects(
+      AllProjectsName allProjects, AllUsersName allUsers) {
+    return super.resetProjects(allProjects, allUsers)
+        .toBuilder()
+        .reset(allProjects, CheckerRef.REFS_CHECKERS + "*", CheckerRef.REFS_META_CHECKERS)
+        .build();
   }
 
   @Before
