@@ -40,7 +40,6 @@ import com.google.gerrit.extensions.api.changes.RecipientType;
 import com.google.gerrit.extensions.client.ProjectWatchInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.PluginDefinedInfo;
-import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.plugins.checks.CheckKey;
 import com.google.gerrit.plugins.checks.CheckerUuid;
 import com.google.gerrit.plugins.checks.acceptance.AbstractCheckersTest;
@@ -416,7 +415,7 @@ public class ChecksEmailIT extends AbstractCheckersTest {
 
   private void testNotifySettingsForPostCheck(
       CheckerUuid checkerUuid, NotifyHandling notify, TestAccount... expectedRecipients)
-      throws RestApiException {
+      throws Exception {
     testNotifySettingsForPostCheck(checkerUuid, ImmutableSet.of(), notify, expectedRecipients);
   }
 
@@ -425,7 +424,7 @@ public class ChecksEmailIT extends AbstractCheckersTest {
       Set<TestAccount> accountsToNotify,
       NotifyHandling notify,
       TestAccount... expectedRecipients)
-      throws RestApiException {
+      throws Exception {
     assertThat(getCombinedCheckState()).isEqualTo(CombinedCheckState.IN_PROGRESS);
 
     sender.clear();
@@ -499,7 +498,7 @@ public class ChecksEmailIT extends AbstractCheckersTest {
 
   private void testNotifySettingsForRerunCheck(
       CheckerUuid checkerUuid, NotifyHandling notify, TestAccount... expectedRecipients)
-      throws RestApiException {
+      throws Exception {
     testNotifySettingsForPostCheck(checkerUuid, ImmutableSet.of(), notify, expectedRecipients);
   }
 
@@ -508,7 +507,7 @@ public class ChecksEmailIT extends AbstractCheckersTest {
       Set<TestAccount> accountsToNotify,
       NotifyHandling notify,
       TestAccount... expectedRecipients)
-      throws RestApiException {
+      throws Exception {
     // Create a check that sets the combined check state to FAILED.
     CheckKey checkKey = CheckKey.create(project, patchSetId, checkerUuid);
     checkOperations.check(checkKey).forUpdate().state(CheckState.FAILED).upsert();
@@ -1204,10 +1203,15 @@ public class ChecksEmailIT extends AbstractCheckersTest {
   }
 
   private String changeUrl(Change change) {
-    return canonicalWebUrl.get() + "c/" + change.getProject().get() + "/+/" + change.getChangeId() + "?usp=email";
+    return canonicalWebUrl.get()
+        + "c/"
+        + change.getProject().get()
+        + "/+/"
+        + change.getChangeId()
+        + "?usp=email";
   }
 
-  private CombinedCheckState getCombinedCheckState() throws RestApiException {
+  private CombinedCheckState getCombinedCheckState() throws Exception {
     ChangeInfo changeInfo =
         gApi.changes()
             .id(patchSetId.changeId().get())
@@ -1219,12 +1223,12 @@ public class ChecksEmailIT extends AbstractCheckersTest {
     return ((ChangeCheckInfo) infos.get(0)).combinedState;
   }
 
-  private void postCheck(CheckerUuid checkerUuid, CheckState checkState) throws RestApiException {
+  private void postCheck(CheckerUuid checkerUuid, CheckState checkState) throws Exception {
     postCheck(checkerUuid, checkState, null);
   }
 
   private void postCheck(CheckerUuid checkerUuid, CheckState checkState, @Nullable String message)
-      throws RestApiException {
+      throws Exception {
     postCheck(checkerUuid, checkState, message, null);
   }
 
@@ -1233,7 +1237,7 @@ public class ChecksEmailIT extends AbstractCheckersTest {
       CheckState checkState,
       @Nullable String message,
       @Nullable String url)
-      throws RestApiException {
+      throws Exception {
     requestScopeOperations.setApiUser(bot.id());
     CheckInput input = new CheckInput();
     input.checkerUuid = checkerUuid.get();
