@@ -31,7 +31,6 @@ import com.google.gerrit.server.DynamicOptions;
 import com.google.gerrit.server.IdentifiedUser;
 import com.google.gerrit.server.ServerInitiated;
 import com.google.gerrit.server.UserInitiated;
-import com.google.gerrit.server.change.ChangeETagComputation;
 import com.google.gerrit.server.change.ChangePluginDefinedInfoFactory;
 import com.google.gerrit.server.git.validators.CommitValidationListener;
 import com.google.gerrit.server.git.validators.MergeValidationListener;
@@ -61,10 +60,6 @@ public class Module extends FactoryModule {
         .in(SINGLETON);
     DynamicSet.bind(binder(), RefOperationValidationListener.class)
         .to(CheckerRefOperationValidator.class)
-        .in(SINGLETON);
-
-    DynamicSet.bind(binder(), ChangeETagComputation.class)
-        .to(ChecksETagComputation.class)
         .in(SINGLETON);
 
     DynamicSet.bind(binder(), ChangePluginDefinedInfoFactory.class)
