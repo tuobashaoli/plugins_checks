@@ -38,9 +38,9 @@ import * as mailTemplate from 'com/google/gerrit/server/mail/Private.soy';
       change
     {/if}.
   </p>
-    {if $checker and $checker.check.state == 'FAILED'
-    and ($newCombinedCheckState == 'FAILED'
-      or ($newCombinedCheckState == 'WARNING' and $oldCombinedCheckState != 'FAILED'))}
+    {if $checker && $checker.check.state == 'FAILED'
+    && ($newCombinedCheckState == 'FAILED'
+      || ($newCombinedCheckState == 'WARNING' && $oldCombinedCheckState != 'FAILED'))}
     <p>
       Checker{sp}
       {if $checker.url}

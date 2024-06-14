@@ -32,9 +32,9 @@
   {$patchSet.patchSetId} of this change
   {if $email.changeUrl}{sp}( {$email.changeUrl} ){/if}
   .{\n}
-  {if $checker and $checker.check.state == 'FAILED'
-    and ($newCombinedCheckState == 'FAILED'
-      or ($newCombinedCheckState == 'WARNING' and $oldCombinedCheckState != 'FAILED'))}
+  {if $checker && $checker.check.state == 'FAILED'
+    && ($newCombinedCheckState == 'FAILED'
+      || ($newCombinedCheckState == 'WARNING' && $oldCombinedCheckState != 'FAILED'))}
     {\n}
     Checker {$checker.name}
     {if $checker.url}{sp}( {$checker.url} ){/if}
