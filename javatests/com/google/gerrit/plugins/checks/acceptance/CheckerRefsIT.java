@@ -324,7 +324,7 @@ public class CheckerRefsIT extends AbstractCheckersTest {
 
       Change.Id changeId = Change.id(seq.nextChangeId());
       ChangeInserter ins = changeInserterFactory.create(changeId, commit, targetRef);
-      ins.setValidate(false);
+      ins.disableValidation();
       ins.setMessage(String.format("Uploaded patch set %s.", ins.getPatchSetId().get()));
       try (BatchUpdate bu =
           updateFactory.create(project, identifiedUserFactory.create(admin.id()), TimeUtil.now())) {
